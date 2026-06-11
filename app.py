@@ -1,1 +1,2 @@
-
+t = kk
+print(kk)
