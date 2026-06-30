@@ -7,17 +7,16 @@ st.set_page_config(page_title="モンハンワイルズ レビュー分析レポ
 
 st.title("🎮 モンスターハンターワイルズ レビュー分析レポート")
 st.write("レビューデータから抽出された、各トピックごとのAI要約と評価傾向をまとめたダッシュボードです。")
+st.info("💡 **Tips:** グラフの棒（バー）や点（ポイント）をクリックすると、画面下部の該当するAI要約が自動的に開きます。")
 
 # --- 1. データの読み込み ---
 @st.cache_data
 def load_data():
-    # 総評レポート (output.csv) の読み込み
     try:
         df_report = pd.read_csv("output.csv")
     except FileNotFoundError:
         df_report = None
         
-    # 生のレビューデータ (mh_wilds_structured_summary.csv) の読み込み
     try:
         df_reviews = pd.read_csv("mh_wilds_structured_summary.csv")
     except FileNotFoundError:
@@ -33,7 +32,6 @@ def get_radar_data(df):
     if df is None:
         return [], [], []
 
-    # output.csv に合わせた6つのカテゴリと、分類用のキーワードを定義
     categories = ['コンテンツ・更新', '表現・演出', '難易度・進行', '動作環境', '戦闘・アクション', 'システム・操作']
     keywords = {
         'コンテンツ・更新': ['コンテンツ', 'アプデ', 'アップデート', '追加', 'ボリューム', 'モンスター', 'DLC'],
@@ -47,7 +45,6 @@ def get_radar_data(df):
     total_counts = []
     recommended_counts = []
     
-    # 欠損値を空文字に変換し、voted_upを文字列の小文字に統一して判定しやすくする
     df['review'] = df['review'].fillna('')
     df['voted_up'] = df['voted_up'].astype(str).str.lower()
     
@@ -55,10 +52,8 @@ def get_radar_data(df):
         kws = keywords[cat]
         pattern = '|'.join(kws)
         
-        # キーワードのいずれかを含むレビュー行を抽出
         mentioned = df[df['review'].str.contains(pattern, na=False)]
         
-        # そのカテゴリへの言及総数と、その中でのおすすめ（True）の数をカウント
         total = len(mentioned)
         rec = len(mentioned[mentioned['voted_up'] == 'true'])
         
@@ -72,6 +67,9 @@ categories, total_counts, recommended_counts = get_radar_data(df_reviews)
 # --- 3. 分析結果の可視化 ---
 st.subheader("📊 分析結果の可視化")
 
+# クリックされたトピックを保存する変数
+selected_topic = None
+
 if sum(total_counts) > 0:
     col1, col2 = st.columns(2)
 
@@ -79,34 +77,27 @@ if sum(total_counts) > 0:
     with col1:
         st.markdown("##### 📈 6項目の言及数とおすすめ評価の比較")
         
-        # 積み上げ棒グラフ用に「おすすめ以外」の数を計算
         not_recommended_counts = [t - r for t, r in zip(total_counts, recommended_counts)]
         
         fig1 = go.Figure()
-        
-        # おすすめ評価（下部分）
         fig1.add_trace(go.Bar(
-            x=categories,
-            y=recommended_counts,
-            name='おすすめ評価',
-            marker_color='coral'
+            x=categories, y=recommended_counts, name='おすすめ評価', marker_color='coral'
+        ))
+        fig1.add_trace(go.Bar(
+            x=categories, y=not_recommended_counts, name='おすすめ以外', marker_color='lightskyblue'
         ))
         
-        # おすすめ以外（上部分）
-        fig1.add_trace(go.Bar(
-            x=categories,
-            y=not_recommended_counts,
-            name='おすすめ以外',
-            marker_color='lightskyblue'
-        ))
-        
-        # レイアウトを積み上げ（stack）に設定
         fig1.update_layout(
-            barmode='stack',
-            showlegend=True,
-            margin=dict(l=40, r=40, t=40, b=40)
+            barmode='stack', showlegend=True, margin=dict(l=40, r=40, t=40, b=40),
+            clickmode='event+select' # クリックイベントを有効化
         )
-        st.plotly_chart(fig1, use_container_width=True)
+        
+        # on_select="rerun" でクリックイベントを取得
+        event_bar = st.plotly_chart(fig1, use_container_width=True, on_select="rerun", selection_mode="points")
+        
+        # 棒グラフがクリックされた場合、そのカテゴリ名を取得
+        if event_bar and event_bar.selection.points:
+            selected_topic = event_bar.selection.points[0]["x"]
 
     # ▼ 右側のカラム：総評スコア（100点満点・レーダーチャート） ▼
     with col2:
@@ -115,12 +106,10 @@ if sum(total_counts) > 0:
         scores = []
         for tot, rec in zip(total_counts, recommended_counts):
             if tot > 0:
-                # 100点満点に換算して小数点第1位まで丸める
                 scores.append(round((rec / tot) * 100, 1))
             else:
                 scores.append(0)
                 
-        # グラフの線を繋ぐために、末尾に最初の要素を追加（右側のレーダーチャート用）
         categories_plot = categories + [categories[0]]
         scores_plot = scores + [scores[0]]
         
@@ -129,18 +118,24 @@ if sum(total_counts) > 0:
             r=scores_plot, theta=categories_plot, fill='toself', name='満足度スコア', marker=dict(color='mediumpurple')
         ))
         
-        # 100点満点なので、最大値を100に固定する
         fig2.update_layout(
             polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-            showlegend=False,
-            margin=dict(l=40, r=40, t=40, b=40)
+            showlegend=False, margin=dict(l=40, r=40, t=40, b=40),
+            clickmode='event+select' # クリックイベントを有効化
         )
-        st.plotly_chart(fig2, use_container_width=True)
+        
+        # on_select="rerun" でクリックイベントを取得
+        event_radar = st.plotly_chart(fig2, use_container_width=True, on_select="rerun", selection_mode="points")
+        
+        # レーダーチャートがクリックされた場合、そのカテゴリ名を取得 (レーダーチャートは theta にカテゴリが入る)
+        if not selected_topic and event_radar and event_radar.selection.points:
+            if "theta" in event_radar.selection.points[0]:
+                selected_topic = event_radar.selection.points[0]["theta"]
 
 else:
     st.info("💡 グラフを表示するには、データが正しく読み込まれているか確認してください。")
 
-st.divider() # 区切り線
+st.divider()
 
 # --- 4. トピック別 AI要約の表示 ---
 if df_report is None:
@@ -149,13 +144,16 @@ else:
     st.subheader("📑 トピック別 AI要約")
     
     st.write("確認したいトピックをクリックして詳細なAI要約を開いてください。")
-    st.write("") # 少し隙間を空ける
+    st.write("") 
 
     for index, row in df_report.iterrows():
         topic = row['topic']
         summary = row['summary']
         
-        with st.expander(f"📌 {topic}", expanded=False):
+        # グラフでクリックされたトピックと一致していれば、最初から開いた状態（True）にする
+        is_expanded = (topic == selected_topic)
+        
+        with st.expander(f"📌 {topic}", expanded=is_expanded):
             st.markdown(summary)
             
-    st.divider() # ページの一番下に区切り線
+    st.divider()
