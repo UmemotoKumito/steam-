@@ -33,7 +33,16 @@ def get_radar_data(df):
     if df is None:
         return [], [], []
 
-    categories = ['コンテンツ・更新', '表現・演出', '難易度・進行', '動作環境', '戦闘・アクション', 'システム・操作']
+    # グラフに表示する順番を指定された順序に変更
+    categories = [
+        '難易度・進行',
+        'コンテンツ・更新',
+        '戦闘・アクション',
+        'システム・操作',
+        '動作環境',
+        '表現・演出'
+    ]
+    
     keywords = {
         'コンテンツ・更新': ['コンテンツ', 'アプデ', 'アップデート', '追加', 'ボリューム', 'モンスター', 'DLC'],
         '表現・演出': ['表現', '演出', 'グラフィック', 'グラ', 'BGM', '音楽', '映像', 'マップ', '世界観'],
@@ -49,6 +58,7 @@ def get_radar_data(df):
     df['review'] = df['review'].fillna('')
     df['voted_up'] = df['voted_up'].astype(str).str.lower()
     
+    # categoriesの順番に従って集計されるため、グラフにもこの順番が反映されます
     for cat in categories:
         kws = keywords[cat]
         pattern = '|'.join(kws)
@@ -160,20 +170,15 @@ else:
     st.divider()
 
     # --- 5. 自動スクロール処理（JavaScriptの埋め込み） ---
-    # 選択されたトピックがある場合のみ、該当箇所にスクロールするJSを実行
     if selected_topic:
-        # 選択されたトピックのインデックスを取得
         target_index = df_report[df_report['topic'] == selected_topic].index
         if not target_index.empty:
             idx = target_index[0]
             
-            # スクロールを実行するJavaScript（HTMLコンポーネントとして埋め込み、非表示にする）
             scroll_js = f"""
             <script>
-                // Streamlitはiframe内で動いているため、window.parentを使って親ドキュメントのIDを探す
                 const element = window.parent.document.getElementById('topic_{idx}');
                 if (element) {{
-                    // 要素が見つかれば、そこまでスムーズにスクロール
                     element.scrollIntoView({{behavior: 'smooth', block: 'start'}});
                 }}
             </script>
