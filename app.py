@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="モンハンワイルズ レビュー分析レポート", layout="wide")
 
 st.title("🎮 モンスターハンターワイルズ レビュー分析レポート")
-st.write("レビューデータから抽出された、各トピックごとの最終分析レポートと評価傾向をまとめたダッシュボードです。")
+st.write("レビューデータから抽出された、各トピックごとのAI要約と評価傾向をまとめたダッシュボードです。")
 
 # --- 1. データの読み込み ---
 @st.cache_data
@@ -69,47 +69,59 @@ def get_radar_data(df):
 
 categories, total_counts, recommended_counts = get_radar_data(df_reviews)
 
-# --- 3. 分析結果の可視化（レーダーチャートを横並びで表示） ---
+# --- 3. 分析結果の可視化 ---
 st.subheader("📊 分析結果の可視化")
 
 if sum(total_counts) > 0:
     col1, col2 = st.columns(2)
 
-    # グラフの線を繋ぐために、末尾に最初の要素を追加
-    categories_plot = categories + [categories[0]]
-    total_counts_plot = total_counts + [total_counts[0]]
-    recommended_counts_plot = recommended_counts + [recommended_counts[0]]
-
-    # ▼ 左側のカラム：言及数とおすすめ評価の比較 ▼
+    # ▼ 左側のカラム：言及数とおすすめ評価の比較（積み上げ棒グラフ） ▼
     with col1:
         st.markdown("##### 📈 6項目の言及数とおすすめ評価の比較")
+        
+        # 積み上げ棒グラフ用に「おすすめ以外」の数を計算
+        not_recommended_counts = [t - r for t, r in zip(total_counts, recommended_counts)]
+        
         fig1 = go.Figure()
-        fig1.add_trace(go.Scatterpolar(
-            r=total_counts_plot, theta=categories_plot, fill='toself', name='言及された総数', marker=dict(color='lightskyblue')
+        
+        # おすすめ評価（下部分）
+        fig1.add_trace(go.Bar(
+            x=categories,
+            y=recommended_counts,
+            name='おすすめ評価',
+            marker_color='coral'
         ))
-        fig1.add_trace(go.Scatterpolar(
-            r=recommended_counts_plot, theta=categories_plot, fill='toself', name='おすすめ評価', marker=dict(color='coral')
+        
+        # おすすめ以外（上部分）
+        fig1.add_trace(go.Bar(
+            x=categories,
+            y=not_recommended_counts,
+            name='おすすめ以外',
+            marker_color='lightskyblue'
         ))
-
-        max_val = max(total_counts) if total_counts else 10
+        
+        # レイアウトを積み上げ（stack）に設定
         fig1.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, max_val + (max_val * 0.1)])),
+            barmode='stack',
             showlegend=True,
             margin=dict(l=40, r=40, t=40, b=40)
         )
         st.plotly_chart(fig1, use_container_width=True)
 
-    # ▼ 右側のカラム：総評スコア（50点満点） ▼
+    # ▼ 右側のカラム：総評スコア（100点満点・レーダーチャート） ▼
     with col2:
-        st.markdown("##### 🎯 トピック別 総評スコア（50点満点）")
+        st.markdown("##### 🎯 トピック別 総評スコア（100点満点）")
         
         scores = []
         for tot, rec in zip(total_counts, recommended_counts):
             if tot > 0:
-                scores.append(round((rec / tot) * 50, 1))
+                # 100点満点に換算して小数点第1位まで丸める
+                scores.append(round((rec / tot) * 100, 1))
             else:
                 scores.append(0)
                 
+        # グラフの線を繋ぐために、末尾に最初の要素を追加（右側のレーダーチャート用）
+        categories_plot = categories + [categories[0]]
         scores_plot = scores + [scores[0]]
         
         fig2 = go.Figure()
@@ -117,25 +129,26 @@ if sum(total_counts) > 0:
             r=scores_plot, theta=categories_plot, fill='toself', name='満足度スコア', marker=dict(color='mediumpurple')
         ))
         
+        # 100点満点なので、最大値を100に固定する
         fig2.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 50])),
+            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
             showlegend=False,
             margin=dict(l=40, r=40, t=40, b=40)
         )
         st.plotly_chart(fig2, use_container_width=True)
 
 else:
-    st.info("💡 レーダーチャートを表示するには、データが正しく読み込まれているか確認してください。")
+    st.info("💡 グラフを表示するには、データが正しく読み込まれているか確認してください。")
 
 st.divider() # 区切り線
 
-# --- 4. トピック別 分析レポート（総評）の表示 ---
+# --- 4. トピック別 AI要約の表示 ---
 if df_report is None:
     st.error("⚠️ データファイル（output.csv）が見つかりません。GitHubにアップロードされているか確認してください。")
 else:
-    st.subheader("📑 トピック別 分析レポート（総評）")
+    st.subheader("📑 トピック別 AI要約")
     
-    st.write("確認したいトピックをクリックして詳細な総評レポートを開いてください。")
+    st.write("確認したいトピックをクリックして詳細なAI要約を開いてください。")
     st.write("") # 少し隙間を空ける
 
     for index, row in df_report.iterrows():
