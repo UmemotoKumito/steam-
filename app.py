@@ -127,8 +127,12 @@ if sum(total_counts) > 0:
             r=scores_plot, theta=categories_plot, fill='toself', name='満足度スコア', marker=dict(color='mediumpurple')
         ))
         
+        # polar内にangularaxisを追加して、右上(45度)スタート・時計回りに設定
         fig2.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+            polar=dict(
+                radialaxis=dict(visible=True, range=[0, 100]),
+                angularaxis=dict(direction="clockwise", rotation=45)
+            ),
             showlegend=False, margin=dict(l=40, r=40, t=40, b=40),
             clickmode='event+select'
         )
