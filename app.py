@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components  # JavaScriptを実行するために追加
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -7,7 +8,7 @@ st.set_page_config(page_title="モンハンワイルズ レビュー分析レポ
 
 st.title("🎮 モンスターハンターワイルズ レビュー分析レポート")
 st.write("レビューデータから抽出された、各トピックごとのAI要約と評価傾向をまとめたダッシュボードです。")
-st.info("💡 **Tips:** グラフの棒（バー）や点（ポイント）をクリックすると、画面下部の該当するAI要約が自動的に開きます。")
+st.info("💡 **Tips:** グラフの棒（バー）や点（ポイント）をクリックすると、画面下部の該当するAI要約が開き、そこまで自動でスクロールします。")
 
 # --- 1. データの読み込み ---
 @st.cache_data
@@ -89,13 +90,11 @@ if sum(total_counts) > 0:
         
         fig1.update_layout(
             barmode='stack', showlegend=True, margin=dict(l=40, r=40, t=40, b=40),
-            clickmode='event+select' # クリックイベントを有効化
+            clickmode='event+select'
         )
         
-        # on_select="rerun" でクリックイベントを取得
         event_bar = st.plotly_chart(fig1, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # 棒グラフがクリックされた場合、そのカテゴリ名を取得
         if event_bar and event_bar.selection.points:
             selected_topic = event_bar.selection.points[0]["x"]
 
@@ -121,13 +120,11 @@ if sum(total_counts) > 0:
         fig2.update_layout(
             polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
             showlegend=False, margin=dict(l=40, r=40, t=40, b=40),
-            clickmode='event+select' # クリックイベントを有効化
+            clickmode='event+select'
         )
         
-        # on_select="rerun" でクリックイベントを取得
         event_radar = st.plotly_chart(fig2, use_container_width=True, on_select="rerun", selection_mode="points")
         
-        # レーダーチャートがクリックされた場合、そのカテゴリ名を取得 (レーダーチャートは theta にカテゴリが入る)
         if not selected_topic and event_radar and event_radar.selection.points:
             if "theta" in event_radar.selection.points[0]:
                 selected_topic = event_radar.selection.points[0]["theta"]
@@ -150,10 +147,35 @@ else:
         topic = row['topic']
         summary = row['summary']
         
-        # グラフでクリックされたトピックと一致していれば、最初から開いた状態（True）にする
+        # 📌 スクロール先の目印（アンカー）として非表示のHTML IDを設置
+        anchor_id = f"topic_{index}"
+        st.markdown(f'<div id="{anchor_id}"></div>', unsafe_allow_html=True)
+        
+        # グラフでクリックされたトピックと一致していれば展開
         is_expanded = (topic == selected_topic)
         
         with st.expander(f"📌 {topic}", expanded=is_expanded):
             st.markdown(summary)
             
     st.divider()
+
+    # --- 5. 自動スクロール処理（JavaScriptの埋め込み） ---
+    # 選択されたトピックがある場合のみ、該当箇所にスクロールするJSを実行
+    if selected_topic:
+        # 選択されたトピックのインデックスを取得
+        target_index = df_report[df_report['topic'] == selected_topic].index
+        if not target_index.empty:
+            idx = target_index[0]
+            
+            # スクロールを実行するJavaScript（HTMLコンポーネントとして埋め込み、非表示にする）
+            scroll_js = f"""
+            <script>
+                // Streamlitはiframe内で動いているため、window.parentを使って親ドキュメントのIDを探す
+                const element = window.parent.document.getElementById('topic_{idx}');
+                if (element) {{
+                    // 要素が見つかれば、そこまでスムーズにスクロール
+                    element.scrollIntoView({{behavior: 'smooth', block: 'start'}});
+                }}
+            </script>
+            """
+            components.html(scroll_js, height=0, width=0)
