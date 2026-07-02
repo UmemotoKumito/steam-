@@ -139,4 +139,98 @@ if selected_game == "モンスターハンターワイルズ":
             # クリックイベントの取得
             event_bar2 = st.plotly_chart(fig2, use_container_width=True, on_select="rerun", selection_mode="points")
             if not selected_topic and event_bar2 and event_bar2.selection.points:
-                selected_topic = event_
+                selected_topic = event_bar2.selection.points[0]["x"]
+
+        # --------------------------------------------------
+        # 下段：レーダーチャートを配置（3カラムの中央を使って綺麗に配置）
+        # --------------------------------------------------
+        st.write("") 
+        col_space1, col_radar, col_space2 = st.columns([1, 2, 1])
+
+        # ▼ レーダーチャート：トピック別ポジティブ割合 ▼
+        with col_radar:
+            st.markdown("<h5 style='text-align: center;'>🎯 ③ トピック別 ポジティブ割合（満足度）</h5>", unsafe_allow_html=True)
+            
+            # CSVの「割合ぽじ」の文字列（例: "21%"）から "%" を削除して数値化
+            scores = df_chart['割合ぽじ'].astype(str).str.replace('%', '').astype(float).tolist()
+            categories_plot = df_chart['トピック'].tolist() + [df_chart['トピック'].iloc[0]]
+            scores_plot = scores + [scores[0]]
+            
+            fig3 = go.Figure()
+            fig3.add_trace(go.Scatterpolar(
+                r=scores_plot, 
+                theta=categories_plot, 
+                fill='toself', 
+                name='ポジティブ割合', 
+                marker=dict(color='mediumpurple')
+            ))
+            fig3.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 100], angle=90),
+                    angularaxis=dict(direction="clockwise", rotation=90)
+                ),
+                showlegend=False, 
+                margin=dict(l=50, r=50, t=40, b=40),
+                clickmode='event+select'
+            )
+            # クリックイベントの取得
+            event_radar = st.plotly_chart(fig3, use_container_width=True, on_select="rerun", selection_mode="points")
+            if not selected_topic and event_radar and event_radar.selection.points:
+                if "theta" in event_radar.selection.points[0]:
+                    selected_topic = event_radar.selection.points[0]["theta"]
+
+    else:
+        st.error("💡 グラフ表示用のCSVファイル（グラフ作成、全体入り.csv）が見つかりません。")
+
+    st.divider()
+
+    # --- トピック別 AI要約の表示 ---
+    if df_report is None:
+        st.error("⚠️ データファイル（output.csv）が見つかりません。")
+    else:
+        st.subheader("📑 トピック別 AI要約")
+        st.write("確認したいトピックをクリックして詳細なAI要約を開いてください。")
+        st.write("AI要約はワードクラウド＋高評価、低評価、総評の４点でまとめています")
+        st.write("") 
+
+        for index, row in df_report.iterrows():
+            topic = row['topic']
+            summary = row['summary']
+            
+            anchor_id = f"topic_{index}"
+            st.markdown(f'<div id="{anchor_id}"></div>', unsafe_allow_html=True)
+            
+            is_expanded = (topic == selected_topic)
+            with st.expander(f"📌 {topic}", expanded=is_expanded):
+                
+                # --- 画像表示部分 ---
+                if topic in topic_images:
+                    img_path = topic_images[topic]
+                    if os.path.exists(img_path):
+                        st.image(img_path, use_container_width=True)
+                    else:
+                        st.warning(f"⚠️ 画像ファイル '{img_path}' が見つかりません。")
+                # -------------------------
+                
+                st.markdown(summary)
+                
+        st.divider()
+
+        # クリックによる自動スクロール処理
+        if selected_topic:
+            target_index = df_report[df_report['topic'] == selected_topic].index
+            if not target_index.empty:
+                idx = target_index[0]
+                scroll_js = f"""
+                <script>
+                    const element = window.parent.document.getElementById('topic_{idx}');
+                    if (element) {{
+                        element.scrollIntoView({{behavior: 'smooth', block: 'start'}});
+                    }}
+                </script>
+                """
+                components.html(scroll_js, height=0, width=0)
+
+else:
+    st.title(f"🎮 {selected_game}")
+    st.info("こちらのタイトルの分析データは現在準備中です。今後のアップデートをお待ちください！")
