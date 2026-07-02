@@ -83,14 +83,14 @@ def get_radar_data(df):
             
     return categories, total_counts, recommended_counts
 
-# トピック名と画像ファイル名の紐づけ
+# トピック名と画像ファイル名の紐づけ（.pngに修正）
 topic_images = {
-    '難易度・進行': '難易度.jpg',
-    'コンテンツ・更新': 'コンテンツ.jpg',
-    '戦闘・アクション': '戦闘.jpg',
-    'システム・操作': 'システム.jpg',
-    '動作環境': '動作環境.jpg',
-    '表現・演出': '表現.jpg'
+    '難易度・進行': '難易度.png',
+    'コンテンツ・更新': 'コンテンツ.png',
+    '戦闘・アクション': '戦闘.png',
+    'システム・操作': 'システム.png',
+    '動作環境': '動作環境.png',
+    '表現・演出': '表現.png'
 }
 
 # ==========================================
@@ -182,7 +182,7 @@ if selected_game == "モンスターハンターワイルズ":
             is_expanded = (topic == selected_topic)
             with st.expander(f"📌 {topic}", expanded=is_expanded):
                 
-                # --- 画像表示部分の追加 ---
+                # --- 画像表示部分 ---
                 if topic in topic_images:
                     img_path = topic_images[topic]
                     if os.path.exists(img_path):
