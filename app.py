@@ -166,38 +166,52 @@ if selected_game == "モンスターハンターワイルズ":
                 if "theta" in event_radar.selection.points[0]:
                     selected_topic = event_radar.selection.points[0]["theta"]
 
-        # --- 下段：CSVを利用した100%積み上げ棒グラフの追加 ---
+        # --- 下段：CSVを利用した100%積み上げ【横】棒グラフの追加 ---
         if df_chart is not None:
             st.markdown("---")
             st.markdown("##### 📊 トピック別の評価内訳（100%積み上げ）")
+            
+            # 指定された順番のリスト
+            target_order = [
+                '難易度・進行',
+                'コンテンツ・更新',
+                '戦闘・アクション',
+                'システム・操作',
+                '動作環境',
+                '表現・演出'
+            ]
+            
             fig3 = go.Figure()
             
-            # Positive（ポジティブ）
+            # Positive（ポジティブ）: xとyを入れ替え、orientation='h' を追加
             fig3.add_trace(go.Bar(
-                x=df_chart['トピック'], 
-                y=df_chart['positive'], 
+                y=df_chart['トピック'], 
+                x=df_chart['positive'], 
                 name='Positive', 
                 marker_color='#4CAF50',
                 text=df_chart['割合ぽじ'], 
-                textposition='inside'
+                textposition='inside',
+                orientation='h'
             ))
             # Neutral（中立）
             fig3.add_trace(go.Bar(
-                x=df_chart['トピック'], 
-                y=df_chart['nuetral'], 
+                y=df_chart['トピック'], 
+                x=df_chart['nuetral'], 
                 name='Neutral', 
                 marker_color='#FFC107',
                 text=df_chart['割合なちゅ'], 
-                textposition='inside'
+                textposition='inside',
+                orientation='h'
             ))
             # Negative（ネガティブ）
             fig3.add_trace(go.Bar(
-                x=df_chart['トピック'], 
-                y=df_chart['negative'], 
+                y=df_chart['トピック'], 
+                x=df_chart['negative'], 
                 name='Negative', 
                 marker_color='#EF5350',
                 text=df_chart['割合ねが'], 
-                textposition='inside'
+                textposition='inside',
+                orientation='h'
             ))
             
             fig3.update_layout(
@@ -207,12 +221,19 @@ if selected_game == "モンスターハンターワイルズ":
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 margin=dict(l=40, r=40, t=40, b=40),
                 clickmode='event+select',
-                yaxis=dict(title='割合（％）')
+                xaxis=dict(title='割合（％）'),
+                yaxis=dict(
+                    categoryorder='array',          # 任意の順番を指定
+                    categoryarray=target_order,     # 上で定義したリストを適用
+                    autorange='reversed'            # 上から順番に表示させる設定
+                )
             )
             
             event_bar2 = st.plotly_chart(fig3, use_container_width=True, on_select="rerun", selection_mode="points")
+            
+            # 横棒グラフのため、クリックした項目の取得を ['x'] から ['y'] に変更しています
             if not selected_topic and event_bar2 and event_bar2.selection.points:
-                selected_topic = event_bar2.selection.points[0]["x"]
+                selected_topic = event_bar2.selection.points[0]["y"]
 
     else:
         st.info("💡 グラフを表示するには、データが正しく読み込まれているか確認してください。")
