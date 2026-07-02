@@ -169,7 +169,7 @@ if selected_game == "モンスターハンターワイルズ":
     else:
         st.subheader("📑 トピック別 AI要約")
         st.write("確認したいトピックをクリックして詳細なAI要約を開いてください。")
-        st.write("AI要約は高評価、低評価、総評の３点でまとめています")
+        st.write("AI要約はワードクラウド＋高評価、低評価、総評の４つでまとめています。")
         st.write("") 
 
         for index, row in df_report.iterrows():
