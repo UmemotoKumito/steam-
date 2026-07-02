@@ -2,6 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
+import os
 
 # ページの基本設定
 st.set_page_config(page_title="ゲームレビュー分析レポート", layout="wide")
@@ -82,6 +83,16 @@ def get_radar_data(df):
             
     return categories, total_counts, recommended_counts
 
+# トピック名と画像ファイル名の紐づけ
+topic_images = {
+    '難易度・進行': '難易度.jpg',
+    'コンテンツ・更新': 'コンテンツ.jpg',
+    '戦闘・アクション': '戦闘.jpg',
+    'システム・操作': 'システム.jpg',
+    '動作環境': '動作環境.jpg',
+    '表現・演出': '表現.jpg'
+}
+
 # ==========================================
 # 📌 メイン画面の表示（選択されたゲームごとに分岐）
 # ==========================================
@@ -158,6 +169,7 @@ if selected_game == "モンスターハンターワイルズ":
     else:
         st.subheader("📑 トピック別 AI要約")
         st.write("確認したいトピックをクリックして詳細なAI要約を開いてください。")
+        st.write("AI要約は高評価、低評価、総評の３点でまとめています")
         st.write("") 
 
         for index, row in df_report.iterrows():
@@ -169,6 +181,17 @@ if selected_game == "モンスターハンターワイルズ":
             
             is_expanded = (topic == selected_topic)
             with st.expander(f"📌 {topic}", expanded=is_expanded):
+                
+                # --- 画像表示部分の追加 ---
+                if topic in topic_images:
+                    img_path = topic_images[topic]
+                    if os.path.exists(img_path):
+                        # use_container_width=True でExpanderの幅に合わせて綺麗に表示させます
+                        st.image(img_path, use_container_width=True)
+                    else:
+                        st.warning(f"⚠️ 画像ファイル '{img_path}' が見つかりません。GitHubにアップロードされているか確認してください。")
+                # -------------------------
+                
                 st.markdown(summary)
                 
         st.divider()
@@ -193,7 +216,3 @@ else:
     # ----------------------------------------
     st.title(f"🎮 {selected_game}")
     st.info("こちらのタイトルの分析データは現在準備中です。今後のアップデートをお待ちください！")
-    
-    # 💡 新しいゲームを追加する時は、ここの下に
-    # elif selected_game == "新しいゲーム名":
-    # というブロックを追加して、別のCSVファイルを読み込ませるように作成します。
