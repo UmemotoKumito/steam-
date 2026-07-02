@@ -74,19 +74,43 @@ if selected_game == "モンスターハンターワイルズ":
         # --------------------------------------------------
         col1, col2 = st.columns(2)
 
-        # ▼ 棒グラフ①：トピック別の総言及数（合計） ▼
+        # ▼ 棒グラフ①：トピック別の感情別言及数（件数ベースの積み上げ） ▼
         with col1:
-            st.markdown("##### 📊 ① トピック別の総言及数（合計）")
+            st.markdown("##### 📊 ① トピック別の感情別言及数（件数積み上げ）")
             fig1 = go.Figure()
+            
+            # Positive（ポジティブ）
             fig1.add_trace(go.Bar(
                 x=df_chart['トピック'],
-                y=df_chart['合計'],
-                text=df_chart['合計'],
-                textposition='outside',
-                marker_color='royalblue',
-                name='総言及数'
+                y=df_chart['positive'],
+                name='Positive',
+                marker_color='#4CAF50',
+                text=df_chart['positive'],
+                textposition='inside'
             ))
+            # Neutral（中立）※CSV内の列名「nuetral」に合わせています
+            fig1.add_trace(go.Bar(
+                x=df_chart['トピック'],
+                y=df_chart['nuetral'],
+                name='Neutral',
+                marker_color='#FFC107',
+                text=df_chart['nuetral'],
+                textposition='inside'
+            ))
+            # Negative（ネガティブ）
+            fig1.add_trace(go.Bar(
+                x=df_chart['トピック'],
+                y=df_chart['negative'],
+                name='Negative',
+                marker_color='#EF5350',
+                text=df_chart['negative'],
+                textposition='inside'
+            ))
+            
             fig1.update_layout(
+                barmode='stack', # 件数ベースでの積み上げ
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 margin=dict(l=40, r=40, t=40, b=40),
                 clickmode='event+select',
                 yaxis=dict(title='言及数（件）')
@@ -110,7 +134,7 @@ if selected_game == "モンスターハンターワイルズ":
                 text=df_chart['割合ぽじ'], 
                 textposition='inside'
             ))
-            # Neutral（中立）※CSV内の列名「nuetral」に合わせています
+            # Neutral（中立）
             fig2.add_trace(go.Bar(
                 x=df_chart['トピック'], 
                 y=df_chart['nuetral'], 
@@ -128,13 +152,15 @@ if selected_game == "モンスターハンターワイルズ":
                 text=df_chart['割合ねが'], 
                 textposition='inside'
             ))
+            
             fig2.update_layout(
                 barmode='stack',       # 積み上げ
                 barnorm='percent',     # 100%基準に引き伸ばす
                 showlegend=True, 
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 margin=dict(l=40, r=40, t=40, b=40),
-                clickmode='event+select'
+                clickmode='event+select',
+                yaxis=dict(title='割合（％）')
             )
             # クリックイベントの取得
             event_bar2 = st.plotly_chart(fig2, use_container_width=True, on_select="rerun", selection_mode="points")
