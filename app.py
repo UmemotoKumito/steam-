@@ -2,11 +2,26 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
 import os
 
 # ページの基本設定
 st.set_page_config(page_title="ゲームレビュー分析レポート", layout="wide")
+
+# ==========================================
+# 📌 サイドバー（ナビゲーション）の設定
+# ==========================================
+st.sidebar.title("🎮 ナビゲーション")
+st.sidebar.write("分析したいタイトルを選択してください。")
+
+# 今後ゲームを追加する場合は、このリストにタイトル名を書き足します
+game_list = [
+    "モンスターハンターワイルズ",
+    "--- ほかのゲーム（準備中） ---" # 後から追加するためのプレースホルダー
+]
+selected_game = st.sidebar.selectbox("タイトル選択", game_list)
+
+st.sidebar.divider()
+st.sidebar.caption("※「ほかのゲーム」のデータセットを追加することで、このダッシュボードを拡張できます。")
 
 # ==========================================
 # 📌 データの読み込みと集計関数
@@ -24,15 +39,6 @@ def load_data(report_file, review_file):
         df_reviews = None
 
     return df_report, df_reviews
-
-@st.cache_data
-def load_all_data(file_path):
-    """新しく追加された全体データを読み込む関数"""
-    try:
-        df = pd.read_csv(file_path)
-        return df
-    except FileNotFoundError:
-        return None
 
 @st.cache_data
 def get_radar_data(df):
@@ -68,6 +74,7 @@ def get_radar_data(df):
         pattern = '|'.join(kws)
         
         mentioned = df[df['review'].str.contains(pattern, na=False)]
+        
         total = len(mentioned)
         rec = len(mentioned[mentioned['voted_up'] == 'true'])
         
@@ -76,7 +83,7 @@ def get_radar_data(df):
             
     return categories, total_counts, recommended_counts
 
-# トピック名と画像ファイル名の紐づけ
+# トピック名と画像ファイル名の紐づけ（.pngに修正）
 topic_images = {
     '難易度・進行': '難易度.png',
     'コンテンツ・更新': 'コンテンツ.png',
@@ -87,74 +94,13 @@ topic_images = {
 }
 
 # ==========================================
-# 📌 サイドバー（ナビゲーション）の設定
-# ==========================================
-st.sidebar.title("🎮 ナビゲーション")
-st.sidebar.write("分析したいタイトルを選択してください。")
-
-# 新しいCSV用の選択肢を先頭に追加しました
-game_list = [
-    "全体の分析レポート（新規追加）",
-    "モンスターハンターワイルズ",
-    "--- ほかのゲーム（準備中） ---"
-]
-selected_game = st.sidebar.selectbox("タイトル選択", game_list)
-
-st.sidebar.divider()
-st.sidebar.caption("※GitHub上のデータセットを更新することで、このダッシュボードを拡張できます。")
-
-
-# ==========================================
-# 📌 メイン画面の表示（選択されたページごとに分岐）
+# 📌 メイン画面の表示（選択されたゲームごとに分岐）
 # ==========================================
 
-# ─── 1. 新しく追加した「全体の分析レポート」ページ ───
-if selected_game == "全体の分析レポート（新規追加）":
-    st.title("📊 ゲーム別 全体俯瞰分析レポート")
-    st.write("アップロードされた全体データをもとに、各タイトルの評価や傾向を比較・可視化したダッシュボードです。")
-
-    # CSVファイルの読み込み
-    df_all = load_all_data("グラフ作成、全体入り.csv")
-
-    if df_all is not None:
-        st.subheader("📈 データの概要")
-        st.dataframe(df_all.head())  # データの先頭5行を表示して確認できるようにします
-
-        st.subheader("✨ 可視化グラフ")
-        
-        # 💡 CSVの列名（ヘッダー）に合わせて、xやy、colorの指定を適宜書き換えてください。
-        # ここでは一般的な「ゲーム名（タイトル）」ごとに「レビュー数」や「評価」を並べる棒グラフの例にしています。
-        try:
-            # 例: ゲーム別の比較グラフ（Plotly Expressを使用）
-            # もしCSVに 'タイトル' や 'レビュー数'、'おすすめ率' などの列がある場合は、以下のように指定します。
-            
-            # グラフの作成例（横並びの棒グラフなど）
-            fig_all = px.bar(
-                df_all, 
-                x=df_all.columns[0],  # 暫定的に1列目をX軸にしています（例: タイトル）
-                y=df_all.columns[1],  # 暫定的に2列目をY軸にしています（例: レビュー数やスコア）
-                title="全体データの集計結果",
-                barmode='group'
-            )
-            
-            # グラフの見た目を綺麗に整える
-            fig_all.update_layout(
-                margin=dict(l=40, r=40, t=60, b=40),
-                hovermode="x unified"
-            )
-            
-            st.plotly_chart(fig_all, use_container_width=True)
-            
-        except Exception as e:
-            st.warning("⚠️ グラフの描画でエラーが発生しました。CSVファイルの列名とコードの指定が合っているか確認してください。")
-            st.error(f"エラー詳細: {e}")
-            
-    else:
-        st.error("⚠️ データファイル（グラフ作成、全体入り.csv）が見つかりません。GitHubにファイルが正しくアップロードされているか確認してください。")
-
-
-# ─── 2. 既存の「モンスターハンターワイルズ」ページ ───
-elif selected_game == "モンスターハンターワイルズ":
+if selected_game == "モンスターハンターワイルズ":
+    # ----------------------------------------
+    # モンスターハンターワイルズのページ
+    # ----------------------------------------
     st.title("🎮 モンスターハンターワイルズ レビュー分析レポート")
     st.write("レビューデータから抽出された、各トピックごとのAI要約と評価傾向をまとめたダッシュボードです。")
     st.info("💡 **Tips:** グラフの棒（バー）や点（ポイント）をクリックすると、画面下部の該当するAI要約が開き、そこまで自動でスクロールします。")
@@ -173,11 +119,9 @@ elif selected_game == "モンスターハンターワイルズ":
         with col1:
             st.markdown("##### 📈 6項目の言及数とおすすめ評価の比較")
             not_recommended_counts = [t - r for t, r in zip(total_counts, recommended_counts)]
-            
+
             fig1 = go.Figure()
-            # 🎨 おすすめ評価を「程よい緑（#4CAF50）」に設定
             fig1.add_trace(go.Bar(x=categories, y=recommended_counts, name='おすすめ評価', marker_color='#4CAF50'))
-            # 🎨 おすすめ以外を「程よい赤（#EF5350）」に設定
             fig1.add_trace(go.Bar(x=categories, y=not_recommended_counts, name='おすすめ以外', marker_color='#EF5350'))
             
             fig1.update_layout(
@@ -193,7 +137,7 @@ elif selected_game == "モンスターハンターワイルズ":
         with col2:
             st.markdown("##### 🎯 トピック別 総評スコア（100点満点）")
             scores = [round((rec / tot) * 100, 1) if tot > 0 else 0 for tot, rec in zip(total_counts, recommended_counts)]
-            
+                    
             categories_plot = categories + [categories[0]]
             scores_plot = scores + [scores[0]]
             
@@ -242,6 +186,7 @@ elif selected_game == "モンスターハンターワイルズ":
                 if topic in topic_images:
                     img_path = topic_images[topic]
                     if os.path.exists(img_path):
+                        # use_container_width=True でExpanderの幅に合わせて綺麗に表示させます
                         st.image(img_path, use_container_width=True)
                     else:
                         st.warning(f"⚠️ 画像ファイル '{img_path}' が見つかりません。GitHubにアップロードされているか確認してください。")
