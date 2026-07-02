@@ -121,8 +121,8 @@ if selected_game == "モンスターハンターワイルズ":
             not_recommended_counts = [t - r for t, r in zip(total_counts, recommended_counts)]
             
             fig1 = go.Figure()
-            fig1.add_trace(go.Bar(x=categories, y=recommended_counts, name='おすすめ評価', marker_color='green'))
-            fig1.add_trace(go.Bar(x=categories, y=not_recommended_counts, name='おすすめ以外', marker_color='orange'))
+            fig1.add_trace(go.Bar(x=categories, y=recommended_counts, name='おすすめ評価', marker_color='#4CAF50'))
+            fig1.add_trace(go.Bar(x=categories, y=not_recommended_counts, name='おすすめ以外', marker_color='#EF5350'))
             
             fig1.update_layout(
                 barmode='stack', showlegend=True, margin=dict(l=40, r=40, t=40, b=40),
