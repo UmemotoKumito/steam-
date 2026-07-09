@@ -30,6 +30,9 @@ st.sidebar.caption("※「ほかのゲーム」のデータセットを追加す
 def load_data(report_file, review_file, chart_csv_file):
     try:
         df_report = pd.read_csv(report_file)
+        # 💡 古いトピック名を新しいトピック名に自動置換
+        if 'topic' in df_report.columns:
+            df_report['topic'] = df_report['topic'].replace('コンテンツ・更新', '更新・ボリューム')
     except FileNotFoundError:
         df_report = None
         
@@ -42,6 +45,9 @@ def load_data(report_file, review_file, chart_csv_file):
         df_chart = pd.read_csv(chart_csv_file)
         if 'Unnamed: 0' in df_chart.columns:
             df_chart.rename(columns={'Unnamed: 0': 'トピック'}, inplace=True)
+        # 💡 古いトピック名を新しいトピック名に自動置換
+        if 'トピック' in df_chart.columns:
+            df_chart['トピック'] = df_chart['トピック'].replace('コンテンツ・更新', '更新・ボリューム')
     except FileNotFoundError:
         df_chart = None
 
@@ -54,7 +60,7 @@ def get_radar_data(df):
 
     categories = [
         '難易度・進行',
-        '更新・ボリューム',
+        '更新・ボリューム', # 変更
         '戦闘・アクション',
         'システム・操作',
         '動作環境',
@@ -62,7 +68,7 @@ def get_radar_data(df):
     ]
     
     keywords = {
-        '更新・ボリューム': ['コンテンツ', 'アプデ', 'アップデート', '追加', 'ボリューム', 'モンスター', 'DLC'],
+        '更新・ボリューム': ['コンテンツ', 'アプデ', 'アップデート', '追加', 'ボリューム', 'モンスター', 'DLC'], # 変更
         '表現・演出': ['表現', '演出', 'グラフィック', 'グラ', 'BGM', '音楽', '映像', 'マップ', '世界観'],
         '難易度・進行': ['難易度', '進行', 'ストーリー', '鎧玉', '簡単', '難しい', '周回', '作業'],
         '動作環境': ['動作', '環境', 'クラッシュ', '落ちる', '重い', 'グラボ', '最適化', 'バグ', 'エラー'],
@@ -90,10 +96,10 @@ def get_radar_data(df):
             
     return categories, total_counts, recommended_counts
 
-# トピック名と画像ファイル名の紐づけ（.pngに修正）
+# トピック名と画像ファイル名の紐づけ（キー名を変更）
 topic_images = {
     '難易度・進行': '難易度.png',
-    '更新・ボリューム': 'コンテンツ.png',
+    '更新・ボリューム': 'コンテンツ.png', # 画像のファイル名はそのまま
     '戦闘・アクション': '戦闘.png',
     'システム・操作': 'システム.png',
     '動作環境': '動作環境.png',
@@ -112,7 +118,7 @@ if selected_game == "モンスターハンターワイルズ":
     st.write("レビューデータから抽出された、各トピックごとのAI要約と評価傾向をまとめたダッシュボードです。")
     st.info("💡 **Tips:** グラフの棒（バー）や点（ポイント）をクリックすると、画面下部の該当するAI要約が開き、そこまで自動でスクロールします。")
 
-    # ワイルズ用のデータを読み込み（CSVも追加）
+    # ワイルズ用のデータを読み込み
     df_report, df_reviews, df_chart = load_data("output.csv", "mh_wilds_structured_summary.csv", "グラフ作成、全体入り.csv")
     categories, total_counts, recommended_counts = get_radar_data(df_reviews)
 
@@ -174,7 +180,7 @@ if selected_game == "モンスターハンターワイルズ":
             # 指定された順番のリスト
             target_order = [
                 '難易度・進行',
-                '更新・ボリューム',
+                '更新・ボリューム', # 変更
                 '戦闘・アクション',
                 'システム・操作',
                 '動作環境',
@@ -193,7 +199,7 @@ if selected_game == "モンスターハンターワイルズ":
                 textposition='inside',
                 orientation='h'
             ))
-            # Negative（ネガティブ）- 追加順を変更
+            # Negative（ネガティブ）
             fig3.add_trace(go.Bar(
                 y=df_chart['トピック'], 
                 x=df_chart['negative'], 
@@ -203,7 +209,7 @@ if selected_game == "モンスターハンターワイルズ":
                 textposition='inside',
                 orientation='h'
             ))
-            # Neutral（中立）- 追加順を変更
+            # Neutral（中立）
             fig3.add_trace(go.Bar(
                 y=df_chart['トピック'], 
                 x=df_chart['nuetral'], 
@@ -231,7 +237,6 @@ if selected_game == "モンスターハンターワイルズ":
             
             event_bar2 = st.plotly_chart(fig3, use_container_width=True, on_select="rerun", selection_mode="points")
             
-            # 横棒グラフのため、クリックした項目の取得を ['x'] から ['y'] に変更しています
             if not selected_topic and event_bar2 and event_bar2.selection.points:
                 selected_topic = event_bar2.selection.points[0]["y"]
 
@@ -263,7 +268,6 @@ if selected_game == "モンスターハンターワイルズ":
                 if topic in topic_images:
                     img_path = topic_images[topic]
                     if os.path.exists(img_path):
-                        # use_container_width=True でExpanderの幅に合わせて綺麗に表示させます
                         st.image(img_path, use_container_width=True)
                     else:
                         st.warning(f"⚠️ 画像ファイル '{img_path}' が見つかりません。GitHubにアップロードされているか確認してください。")
